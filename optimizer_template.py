@@ -18,6 +18,7 @@ from simsopt.geo import CurveCurveDistance, CurveSurfaceDistance
 from scipy.optimize import minimize, minimize_scalar
 import matplotlib.pylab as plt
 from simsopt._core import load
+from create_surface import *
 
 ########################################################################
 ########################## Input Parameters ############################
@@ -64,16 +65,7 @@ cbarfontsize = CBAR_SIZE_VAL
 eq_dir = EQ_DIR
 eq_name = EQ_NAME_VAL
 eq_name_full = os.path.join(eq_dir, eq_name + '.nc')
-
-surf_nfp1 = SurfaceRZFourier.from_wout(eq_name_full, surf_s, range='half period', nphi=plas_nPhi, ntheta=plas_nTheta)
-
-surf_plas = SurfaceRZFourier(mpol=surf_nfp1.mpol,ntor=surf_nfp1.ntor,nfp=2,stellsym=True,
-                                quadpoints_theta=surf_nfp1.quadpoints_theta,
-                                quadpoints_phi=surf_nfp1.quadpoints_phi)
-surf_plas.least_squares_fit(surf_nfp1.gamma())
-# surf_plas = SurfaceRZFourier.from_wout(eq_name_full, surf_s, range='half period', nphi=plas_nPhi, ntheta=plas_nTheta)
-surf_plas.set_dofs(surf_dof_scale*surf_plas.get_dofs())
-surf_plas.set_rc(0,0,VV_R0)
+surf_plas = create_surface(eq_name_full,'half period', plas_nPhi, plas_nTheta, surf_s, surf_dof_scale, VV_R0)
 
 # Geometric properties of the target plasma boundary
 n = surf_plas.normal()
@@ -143,27 +135,15 @@ if axisymmetric:
     # axisymmetric surface
     quad_theta = np.linspace(0, 1, plas_nTheta)
     quad_phi = np.linspace(0, 1 / 2 / surf_plas.nfp, plas_nPhi) # only a half period of the vessel
-    surf_wf = SurfaceRZFourier(quadpoints_phi=quad_phi, quadpoints_theta=quad_theta, nfp = surf_plas.nfp)
-    surf_wf.set_rc(0,0,VV_R0)
-    surf_wf.set_rc(1,0,VV_a)
-    surf_wf.set_zs(1,0,VV_a)
+    surf_wf = create_axisym_wf_surface(quad_phi, quad_theta, surf_plas.nfp, VV_R0, VV_a)
     # use this for poincare plots post-processing
-    quad_phi_full = np.linspace(0, 1, plas_nPhi) # only a half period of the vessel
-    surf_wf_full = SurfaceRZFourier(quadpoints_phi=quad_phi_full, quadpoints_theta=quad_theta, nfp = surf_plas.nfp)
-    surf_wf_full.set_rc(0,0,VV_R0)
-    surf_wf_full.set_rc(1,0,VV_a)
-    surf_wf_full.set_zs(1,0,VV_a)
+    quad_phi_full = np.linspace(0, 1, plas_nPhi)
+    surf_wf_full = create_axisym_wf_surface(quad_phi_full, quad_theta, surf_plas.nfp, VV_R0, VV_a)
 else:
     # non-axisymmetric surface (copy the plasma surface and extend via normal)
     # again, this will need to be changed depending on the input surface type
-    # WARNING: This isn't up to date, not guaranteed to work
-    surf_wf = SurfaceRZFourier(mpol=surf_nfp1.mpol,ntor=surf_nfp1.ntor,nfp=2,stellsym=True,
-                                    quadpoints_theta=surf_nfp1.quadpoints_theta,
-                                    quadpoints_phi=surf_nfp1.quadpoints_phi)
-    surf_wf.least_squares_fit(surf_nfp1.gamma())
-    surf_wf.set_dofs(surf_plas.get_dofs())
-    surf_wf.set_rc(0,0,VV_R0)
-    #surf_wf = SurfaceRZFourier.from_wout(eq_name_full, range='half period', nphi=plas_nPhi, ntheta=plas_nTheta)
+    # WARNING: This might not be up to date, not guaranteed to work
+    surf_wf = create_surface(eq_name_full,'half period', plas_nPhi, plas_nTheta, surf_s, surf_dof_scale, VV_R0)
     surf_wf.extend_via_normal(wf_plas_offset)    
 
 # Create the wireframe
@@ -585,16 +565,14 @@ mlab.options.offscreen = True
 # 3D visualization of the wireframe, TF coils, and plasma boundary
 mlab.figure(size=(1200,900), bgcolor=(1.0,1.0,1.0))
 wf.make_plot_3d(engine='mayavi', to_show='active', tube_radius=0.005)
-surf_plas_full = SurfaceRZFourier.from_wout(input_HBT, surf_s, range='full torus', nphi=2*wf.nfp*plas_nPhi, ntheta=plas_nTheta)
-surf_plas_full.set_dofs(surf_dof_scale*surf_plas_full.get_dofs())
-surf_plas_full.set_rc(0,0,VV_R0)
+surf_plas_full = create_surface(eq_name_full,'full torus', 2*wf.nfp*plas_nPhi, plas_nTheta, surf_s, surf_dof_scale, VV_R0)
 surf_plas_full.plot(engine='mayavi', close=True, wireframe=False, \
                     show=False, color=(0.75, 0.75, 0.75))
 if n_tf > 0:
     for coil in tf_coils:
         coil.curve.plot(close=True, show=False, engine='mayavi')
 mlab.view(distance=surf_plas.get_rc(0,0)*6)
-mlab.savefig('/plot3d.png', size=(1400, 1000))
+mlab.savefig('plot3d.png', size=(1400, 1000))
 
 ########################################################################
 ############################## Save Data ###############################
@@ -644,7 +622,7 @@ lines = [f"Equilibrium file location: {eq_name_full} with s = {surf_s} and dof_s
          f'Squared Flux Percentage Decrease After TF Optimization = {(JF_preTF - JF_postTF) / JF_preTF * 100:.2f}% \n',
          f'Squared Flux Percentage Between TF Only and Combined Optimization = {(JF_postTF - JF_final) / JF_postTF * 100:.2f}% \n',
          f'Squared Flux Percentage Between Initial State and Final Optimization = {(JF_preTF - JF_final) / JF_preTF * 100:.2f}% \n',
-         f"Final Surface-averaged |B| = {mean_abs_modBfinal:.3f} + \n",
+         f"Final Surface-averaged |B| = {mean_abs_modBfinal:.3f} \n",
          f"Maximum WF Current = {np.abs(wf.currents[wf.unconstrained_segments()]).max():.3e}, Maximum Allowed Current With {cur_tol * 100}% Tolerance = {max_I*(1+cur_tol):.3e} \n"]
  
 with open("parameters.txt", "w") as file1:

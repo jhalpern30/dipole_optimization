@@ -10,23 +10,24 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 run_dir = os.path.join(script_dir, 'outputs')
 
 # this is the name of the script you're going to replace the parameters for and run
-script_template_name = 'HBT_optimizer_template.py' ### Python script name in current folder.
+#script_template_name = 'HBT_optimizer_template.py' ### use this for HBT calcs (no TF dofs)
+script_template_name = 'optimizer_template.py' ### Python script name in current folder.
 script_name = 'optimizer.py' ### what you want the script saved as in outputs folder
 
 ### Simulation parameters ###
 # TF coils parameters
-n_tf = 6                       # number of TF coils per half field period
+n_tf = 3                       # number of TF coils per half field period
 num_fixed = 1                  # number of TF coil currents to fix
 full_TF_scan = False           # keep this at False unless you have a reason to see the whole TF scan
 vc_flag = True                # Use finite beta when running HBT_optimizer_template
 field_on_axis = 1.0            # B field at magnetic axis in Tesla
-TF_radii = [0.5, 0.55]         # range of TF coil radii to optimize over, put in increasing order
+TF_radii = [0.55]         # range of TF coil radii to optimize over, put in increasing order
 
 # Windowpane parameters
 axisymmetric = True            # use axisymmetric vessel for dipoles
-max_dipole_field = 0.5         # [T], set by engineering constraints
+max_dipole_field = 2.0         # [T], set by engineering constraints
 win_nPhi = 12                    # Number of windows per half period, toroidal dimension
-win_nTheta = 11               # Number of windows, poloidal dimension
+win_nTheta = 14               # Number of windows, poloidal dimension
 win_size = 8                   # Number of grid cells/window, both dimensions
 win_gap = 2                    # Number of grid cells between adjacent windows
 
@@ -40,7 +41,7 @@ plas_nTheta = 64               # poloidal points on plasma surface
 surf_s = 1.0                   # value of s to cut the surface at (if already HBT sized, these will both be 1)
 surf_dof_scale = 0.15          # used to scale the dofs of the surface
 eq_name = 'wout_NAS_n2n4_AR6.2.03'  # name of the wout file from vmec
-eq_name = 'wout_hbt_finite_beta_000_000000'
+#eq_name = 'wout_hbt_finite_beta_000_000000'   # use this for HBT calcs
 eq_dir = os.path.join(script_dir, 'equilibria') # equilibria should be in this folder
 
 # Change figure specs (i.e. increase dpi, font sizes for posters)
@@ -54,6 +55,8 @@ os.makedirs(run_dir, exist_ok=True)
 os.chdir(run_dir)
 
 shutil.copy(os.path.join(script_dir, script_template_name), os.path.join(run_dir, script_name), follow_symlinks=True)
+shutil.copy(os.path.join(script_dir, 'create_surface.py'), os.path.join(run_dir, 'create_surface.py'), follow_symlinks=True)
+
 
 ##### Replace parameters in python file
 # Read the template file

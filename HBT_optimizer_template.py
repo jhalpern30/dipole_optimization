@@ -358,8 +358,7 @@ mlab.options.offscreen = True
 # 3D visualization of the wireframe, TF coils, and plasma boundary
 mlab.figure(size=(1200,900), bgcolor=(1.0,1.0,1.0))
 wf.make_plot_3d(engine='mayavi', to_show='active', tube_radius=0.005)
-surf_plas_full = SurfaceRZFourier.from_wout(eq_name_full, surf_s, range='full torus', nphi=2*wf.nfp*plas_nPhi, ntheta=plas_nTheta)
-surf_plas_full.set_dofs(surf_dof_scale*surf_plas_full.get_dofs())
+surf_plas_full = SurfaceRZFourier.from_wout(eq_name_full, surf_s, range='full torus', nphi=plas_nPhi, ntheta=plas_nTheta)
 surf_plas_full.set_rc(0,0,VV_R0)
 surf_plas_full.plot(engine='mayavi', close=True, wireframe=False, \
                     show=False, color=(0.75, 0.75, 0.75))
