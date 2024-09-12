@@ -439,7 +439,7 @@ print(f'Optimal current for minimum Bnormal: {wf_max:.2f} A')
 field_flag = True
 
 if wf_max < max_I:
-    max_B = np.sqrt(2) * mu0 * optimal_I / np.pi / min_dim
+    max_B = np.sqrt(2) * mu0 * wf_max / np.pi / min_dim
     field_flag = False # makes sure it doesn't enter regularization matrix loops in TF/WF iterations
     Lambda = lambda_init
     optimal_I = wf_max
