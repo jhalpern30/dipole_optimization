@@ -63,15 +63,15 @@ cbarfontsize = CBAR_SIZE_VAL
 # This is current set up for one of the Henneberg NAS equilibria Elizabeth passed on
 test_dir = EQ_DIR
 eq_name = EQ_NAME_VAL
-input_QA = os.path.join(test_dir, eq_name + '.nc')
+eq_name_full = os.path.join(test_dir, eq_name + '.nc')
 
-surf_nfp1 = SurfaceRZFourier.from_wout(input_QA, surf_s, range='half period', nphi=plas_nPhi, ntheta=plas_nTheta)
+surf_nfp1 = SurfaceRZFourier.from_wout(eq_name_full, surf_s, range='half period', nphi=plas_nPhi, ntheta=plas_nTheta)
 
 surf_plas = SurfaceRZFourier(mpol=surf_nfp1.mpol,ntor=surf_nfp1.ntor,nfp=2,stellsym=True,
                                 quadpoints_theta=surf_nfp1.quadpoints_theta,
                                 quadpoints_phi=surf_nfp1.quadpoints_phi)
 surf_plas.least_squares_fit(surf_nfp1.gamma())
-# surf_plas = SurfaceRZFourier.from_wout(input_QA, surf_s, range='half period', nphi=plas_nPhi, ntheta=plas_nTheta)
+# surf_plas = SurfaceRZFourier.from_wout(eq_name_full, surf_s, range='half period', nphi=plas_nPhi, ntheta=plas_nTheta)
 surf_plas.set_dofs(surf_dof_scale*surf_plas.get_dofs())
 surf_plas.set_rc(0,0,VV_R0)
 
@@ -150,9 +150,9 @@ if axisymmetric:
     # use this for poincare plots post-processing
     quad_phi_full = np.linspace(0, 1, plas_nPhi) # only a half period of the vessel
     surf_wf_full = SurfaceRZFourier(quadpoints_phi=quad_phi_full, quadpoints_theta=quad_theta, nfp = surf_plas.nfp)
-    surf_wf.set_rc(0,0,VV_R0)
-    surf_wf.set_rc(1,0,VV_a)
-    surf_wf.set_zs(1,0,VV_a)
+    surf_wf_full.set_rc(0,0,VV_R0)
+    surf_wf_full.set_rc(1,0,VV_a)
+    surf_wf_full.set_zs(1,0,VV_a)
 else:
     # non-axisymmetric surface (copy the plasma surface and extend via normal)
     # again, this will need to be changed depending on the input surface type
@@ -162,7 +162,7 @@ else:
     surf_wf.least_squares_fit(surf_nfp1.gamma())
     surf_wf.set_dofs(surf_plas.get_dofs())
     surf_wf.set_rc(0,0,VV_R0)
-    #surf_wf = SurfaceRZFourier.from_wout(input_QA, range='half period', nphi=plas_nPhi, ntheta=plas_nTheta)
+    #surf_wf = SurfaceRZFourier.from_wout(eq_name_full, range='half period', nphi=plas_nPhi, ntheta=plas_nTheta)
     surf_wf.extend_via_normal(wf_plas_offset)    
 
 # Create the wireframe
@@ -612,7 +612,7 @@ with open("TF_shifts_tilts.txt", "w") as file:
 
 # Write the optimization output file
 # Can always add more to this as we determine what is relevant information
-lines = [f"Equilibrium file location: {input_QA} with s = {surf_s} and dof_scale = {surf_dof_scale} \n", 
+lines = [f"Equilibrium file location: {eq_name_full} with s = {surf_s} and dof_scale = {surf_dof_scale} \n", 
          f"Equilibrium parameters: major radius = {major_radius:.3f}, minor radius = {minor_radius:.3f}, volume = {volume:.3f}, aspect ratio = {aspect_ratio:.3f} \n",
          f"On axis magnetic field = {field_on_axis} T \n",
          f"Maximum allowed dipole field = {max_dipole_field} [T] \n", \
