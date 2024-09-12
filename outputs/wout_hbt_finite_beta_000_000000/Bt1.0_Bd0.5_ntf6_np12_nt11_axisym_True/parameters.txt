@@ -1,0 +1,15 @@
+Equilibrium file location: /Users/jakehalpern/Projects/C-REX/Cleaned_up_for_Github/equilibria/wout_hbt_finite_beta_000_000000.nc with s = 1.0 and dof_scale = 0.15 
+Equilibrium parameters: major radius = 1.000, minor radius = 0.150, volume = 0.444, aspect ratio = 6.667 
+On axis magnetic field = 1.0 T 
+Maximum allowed dipole field = 0.09691648010262309 [T] 
+TF parameters: ntf = 6, num_fixed = 1, radius = 0.500 [m]
+Dipole parameters: nPhi = 12, nTheta = 11, min dimensions (phi, theta) = (4.50,6.18) [in] 
+Vessel parameters: Axisymmetric? True, major radius = 1.0, minor radius = 0.25 , average plasma-vessel distance = 0.1000 [m]
+
+Optimization results 
+Pre TF Surface-averaged/Max |Bn|/|B| = 1.767e-02/5.973e-02 
+Final Surface-averaged |B| = 1.000e+00 [T]
+Final Surface-averaged |B| = 1.000 + 
+Maximum WF Current = 1.956e+04
+Maximum TF Current = 4.167e+05 [A] 
+Maximum determined dipole field = 0.097 [T]

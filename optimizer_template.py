@@ -19,9 +19,9 @@ from scipy.optimize import minimize, minimize_scalar
 import matplotlib.pylab as plt
 from simsopt._core import load
 
-################################
-####### Input Parameters #######
-################################
+########################################################################
+########################## Input Parameters ############################
+########################################################################
 # Windowpane parameters
 axisymmetric = AXISYM_VAL            # use axisymmetric vessel for dipoles
 max_dipole_field = BD_VAL            # [T], set by engineering constraints
@@ -61,9 +61,9 @@ cbarfontsize = CBAR_SIZE_VAL
 # Import plasma boundary and generate a winding surface for the wireframe
 # Note - you might have to adjust this section depending on what your equilibrium file looks like
 # This is current set up for one of the Henneberg NAS equilibria Elizabeth passed on
-test_dir = EQ_DIR
+eq_dir = EQ_DIR
 eq_name = EQ_NAME_VAL
-eq_name_full = os.path.join(test_dir, eq_name + '.nc')
+eq_name_full = os.path.join(eq_dir, eq_name + '.nc')
 
 surf_nfp1 = SurfaceRZFourier.from_wout(eq_name_full, surf_s, range='half period', nphi=plas_nPhi, ntheta=plas_nTheta)
 
@@ -156,6 +156,7 @@ if axisymmetric:
 else:
     # non-axisymmetric surface (copy the plasma surface and extend via normal)
     # again, this will need to be changed depending on the input surface type
+    # WARNING: This isn't up to date, not guaranteed to work
     surf_wf = SurfaceRZFourier(mpol=surf_nfp1.mpol,ntor=surf_nfp1.ntor,nfp=2,stellsym=True,
                                     quadpoints_theta=surf_nfp1.quadpoints_theta,
                                     quadpoints_phi=surf_nfp1.quadpoints_phi)
@@ -579,6 +580,22 @@ plt.tight_layout()
 plt.savefig('currents.png', dpi=dpi)
 plt.clf()
 
+from mayavi import mlab
+mlab.options.offscreen = True
+# 3D visualization of the wireframe, TF coils, and plasma boundary
+mlab.figure(size=(1200,900), bgcolor=(1.0,1.0,1.0))
+wf.make_plot_3d(engine='mayavi', to_show='active', tube_radius=0.005)
+surf_plas_full = SurfaceRZFourier.from_wout(input_HBT, surf_s, range='full torus', nphi=2*wf.nfp*plas_nPhi, ntheta=plas_nTheta)
+surf_plas_full.set_dofs(surf_dof_scale*surf_plas_full.get_dofs())
+surf_plas_full.set_rc(0,0,VV_R0)
+surf_plas_full.plot(engine='mayavi', close=True, wireframe=False, \
+                    show=False, color=(0.75, 0.75, 0.75))
+if n_tf > 0:
+    for coil in tf_coils:
+        coil.curve.plot(close=True, show=False, engine='mayavi')
+mlab.view(distance=surf_plas.get_rc(0,0)*6)
+mlab.savefig('/plot3d.png', size=(1400, 1000))
+
 ########################################################################
 ############################## Save Data ###############################
 ########################################################################
@@ -598,7 +615,7 @@ surf_wf.to_vtk('vacuumvessel')
 mf_tf.save('TF_biot_savart_opt.json');
 wf.to_vtk('wf_grid')
 np.save('WF_currents', currents_full)
-surf_wf.save('surf_wf.json')
+surf_wf_full.save('surf_wf.json')
 np.savez('WF_data', **wf_dict)
 curves_to_vtk(curves, 'TF_coils', close=True)
 
