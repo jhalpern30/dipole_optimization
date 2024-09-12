@@ -1,0 +1,7 @@
+R0 in meters, rotations in radians 
+HBTCylFourier7:R0 = 1.03 
+HBTCylFourier7:r_rotation = 0.08 
+HBTCylFourier8:R0 = 0.97 
+HBTCylFourier8:r_rotation = 0.01 
+HBTCylFourier9:R0 = 1.08 
+HBTCylFourier9:r_rotation = -0.08 
