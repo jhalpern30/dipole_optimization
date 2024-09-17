@@ -302,7 +302,10 @@ max_dipole_field = np.sqrt(2) * mu0 * np.abs(wf.currents.max()) / np.pi / min_di
 # Determine the total magnetic field by adding the wireframe and TF coil fields
 mf_tot = mf_tf + res['wframe_field']
 # Surface integral of the squared normal flux through the plasma boundary
-Bnormal_mf = SquaredFlux(surf_plas, mf_tot, target=vc.B_external_normal).J()
+if vc_flag:
+    Bnormal_mf = SquaredFlux(surf_plas, mf_tot, target=vc.B_external_normal).J()
+else:
+    Bnormal_mf = SquaredFlux(surf_plas, mf_tot).J()
 print('    Squared flux integral from field calc = %.8e' % (Bnormal_mf))
 
 # get final Bnormal
