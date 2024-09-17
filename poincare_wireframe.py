@@ -12,19 +12,20 @@ from create_surface import *
 
 # these need to be set based on the directory where the outputs you want to process are
 eq_name = 'wout_NAS_n2n4_AR6.2.03'  # this needs to be set based on the run
-out_dir = 'Bt1.0_Bd2.0_ntf3_np12_nt14_axisym_True_low_field_error'
+out_dir = 'Bt1.0_Bd0.5_ntf3_np6_nt11_axisym_True'
 
 # load the equilibrium surface
 script_dir = os.path.dirname(os.path.abspath(__file__))
 eq_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'equilibria')
 eq_name_full = os.path.join(eq_dir, eq_name + '.nc')
+print(f'\nGenerating Poincare Plot for Equilibrium {eq_name_full} with Outputs in {out_dir}')
 plas_nPhi = 128
 plas_nTheta = 64
 dof_scale = 0.15
 R0 = 1
 surf_s = 1
 # creating the plasma surface will be hardcoded for now
-surf_plas = create_surface(eq_name_full,'full torus', plas_nPhi, plas_nTheta, surf_s, dof_scale, R0)
+surf_plas = create_surface(eq_name_full=eq_name_full, surf_range='full torus', plas_nPhi=plas_nPhi, plas_nTheta=plas_nTheta, surf_s=surf_s, dof_scale=dof_scale, R0=R0)
 full_dir = os.path.join(script_dir, 'outputs', eq_name, out_dir)
 
 # load the saved data from the previous run
@@ -57,14 +58,14 @@ tmax_fl = 10000 # Maximum toroidal angle for integration
 tol = 1e-8 # Tolerance for field line integration
 interpolate = True # If True, then the BiotSavart magnetic field is interpolated 
                    # on a grid for the magnetic field evaluation
-nr = 12 # Number of radial points for interpolation
+nr = 25 # Number of radial points for interpolation
 nphi = 12 # Number of toroidal angle points for interpolation
-nz = 20 # Number of vertical points for interpolation
+nz = 12 # Number of vertical points for interpolation
 degree = 4 # Degree for interpolation
 
 # Extend surface, since we want to look at field lines beyond it
-surf_extended = create_surface(eq_name_full,'full torus', plas_nPhi, plas_nTheta, dof_scale, R0)
-surf_extended.extend_via_normal(0.1)
+surf_extended = create_surface(eq_name_full=eq_name_full, surf_range='full torus', plas_nPhi=plas_nPhi, plas_nTheta=plas_nTheta, surf_s=surf_s, dof_scale=dof_scale, R0=R0)
+surf_extended.extend_via_normal(0.05)
 
 # Use extended surface to determine initial conditions
 gamma = surf_extended.gamma()
@@ -76,7 +77,6 @@ nfp = surf_plas.nfp
 Rmin = np.min(R)
 Rmax = np.max(R)
 Zmax = np.max(Z)
-print(Rmin, Rmax, Zmax)
 
 # The parameter h sets the grid size for the classifier, 
 # and p is the order. These parameters are not too critical

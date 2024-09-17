@@ -1,7 +1,7 @@
 from simsopt.geo.surfacerzfourier import SurfaceRZFourier
 
 # alter this function depending on the file type of equilibrium
-def create_surface(eq_name_full,surf_range, plas_nPhi, plas_nTheta, surf_s, dof_scale, R0):
+def create_surface(eq_name_full, surf_range, plas_nPhi, plas_nTheta, surf_s, dof_scale, R0):
     surf_nfp1 = SurfaceRZFourier.from_wout(eq_name_full, s=surf_s, range=surf_range, nphi=plas_nPhi, ntheta=plas_nTheta)
     surf_plas = SurfaceRZFourier(mpol=surf_nfp1.mpol,ntor=surf_nfp1.ntor,nfp=2,stellsym=True,
                                     quadpoints_theta=surf_nfp1.quadpoints_theta,
