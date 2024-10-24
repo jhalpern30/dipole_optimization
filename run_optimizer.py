@@ -1,5 +1,6 @@
 import os
 import shutil
+import numpy as np
 
 # Run this script as python run_optimizer.py 
 
@@ -10,37 +11,38 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 run_dir = os.path.join(script_dir, 'outputs')
 
 # this is the name of the script you're going to replace the parameters for and run
-#script_template_name = 'HBT_optimizer_template.py' ### use this for HBT calcs (no TF dofs)
-script_template_name = 'optimizer_template.py' ### Python script name in current folder.
+script_template_name = 'optimizer_template_updated.py' ### use this for HBT calcs (no TF dofs)
+#script_template_name = 'optimizer_template.py' ### Python script name in current folder.
 script_name = 'optimizer.py' ### what you want the script saved as in outputs folder
 
 ### Simulation parameters ###
 # TF coils parameters
-n_tf = 3                       # number of TF coils per half field period
+n_tf = 5                       # number of TF coils per half field period
 num_fixed = 1                  # number of TF coil currents to fix
-full_TF_scan = False           # keep this at False unless you have a reason to see the whole TF scan
-vc_flag = True                # Use finite beta when running HBT_optimizer_template
+full_TF_scan = True           # keep this at False unless you have a reason to see the whole TF scan
+vc_flag = False                # Use finite beta when running HBT_optimizer_template
 field_on_axis = 1.0            # B field at magnetic axis in Tesla
-TF_radii = [0.55]         # range of TF coil radii to optimize over, put in increasing order
-
+fixed_geo = False               # fix the TF geometry
+TF_radii = [0.9, 1, 1.1]         # range of TF coil radii to optimize over, put in increasing order
+    
 # Windowpane parameters
 axisymmetric = True            # use axisymmetric vessel for dipoles
-max_dipole_field = 2.0         # [T], set by engineering constraints
-win_nPhi = 12                    # Number of windows per half period, toroidal dimension
-win_nTheta = 14               # Number of windows, poloidal dimension
+max_dipole_field = 1.0         # [T], set by engineering constraints
+win_nPhi = 7                    # Number of windows per half period, toroidal dimension
+win_nTheta = 15               # Number of windows, poloidal dimension
 win_size = 8                   # Number of grid cells/window, both dimensions
 win_gap = 2                    # Number of grid cells between adjacent windows
 
 # Vacuum Vessel
-VV_a = 0.25                    # minor radius of vacuum vessel
-VV_R0 = 1.0                    # major radius of vacuum vessel
+VV_a = 0.75                   # minor radius of vacuum vessel
+VV_R0 = 1.90                   # major radius of vacuum vessel
 
 # Plasma Surface
 plas_nPhi = 64                 # toroidal points on plasma surface
 plas_nTheta = 64               # poloidal points on plasma surface
 surf_s = 1.0                   # value of s to cut the surface at (if already HBT sized, these will both be 1)
-surf_dof_scale = 0.15          # used to scale the dofs of the surface
-eq_name = 'wout_NAS_n2n4_AR6.2.03'  # name of the wout file from vmec
+surf_dof_scale = 0.50          # used to scale the dofs of the surface
+eq_name = 'wout_NAS_n2_AR4.03'  # name of the wout file from vmec
 #eq_name = 'wout_hbt_finite_beta_000_000000'   # use this for HBT calcs
 eq_dir = os.path.join(script_dir, 'equilibria') # equilibria should be in this folder
 
@@ -48,7 +50,19 @@ eq_dir = os.path.join(script_dir, 'equilibria') # equilibria should be in this f
 dpi = 100; titlefontsize = 18; axisfontsize = 16; legendfontsize = 14; ticklabelfontsize = 14; cbarfontsize = 18
 
 extra = str(input("Anything extra to add to pathname? If none, just press enter: "))
-run_dir = os.path.join(run_dir, f'{eq_name}/Bt{field_on_axis}_Bd{max_dipole_field}_ntf{n_tf}_np{win_nPhi}_nt{win_nTheta}_axisym_{str(axisymmetric)}{extra}/')
+# only add these parameters to output file if they are unusual runs, can add more as needed
+if VV_a != 0.25:
+    extra = extra + f"_VVa_{VV_a}"
+if VV_R0 != 1.0:
+    extra = extra + f"VV_R0_{VV_R0}"
+if fixed_geo != False:
+    extra = extra + f"_fixedTFs"
+if axisymmetric != True:
+    extra = extra + f"_nonaxisym"
+if dpi != 100:
+    extra = extra + f"_for_poster"
+    
+run_dir = os.path.join(run_dir, f'{eq_name}/Bt{field_on_axis}_Bd{max_dipole_field}_ntf{n_tf}_np{win_nPhi}_nt{win_nTheta}{extra}/')
 
 ###### Change directory
 os.makedirs(run_dir, exist_ok=True)
@@ -80,6 +94,7 @@ filedata = filedata.replace('EQ_NAME_VAL', f"'{eq_name}'")
 filedata = filedata.replace('EQ_DIR', f"'{eq_dir}'")
 filedata = filedata.replace('NTF_VAL', str(n_tf))
 filedata = filedata.replace('NUM_FIXED_VAL', str(num_fixed))
+filedata = filedata.replace('FIXED_GEO_VAL', str(fixed_geo))
 filedata = filedata.replace('FULL_TF_SCAN_VAL', str(full_TF_scan))
 filedata = filedata.replace('TF_RADII', str(TF_radii))
 filedata = filedata.replace('VC_FLAG', str(vc_flag))
