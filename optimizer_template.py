@@ -47,6 +47,7 @@ field_on_axis = BT_VAL
 # TF coils parameters
 n_tf = NTF_VAL
 num_fixed = NUM_FIXED_VAL
+fixed_geo = FIXED_GEO_VAL
 full_TF_scan = FULL_TF_SCAN_VAL
 TF_r_values = TF_RADII
 
@@ -220,13 +221,16 @@ for r in TF_r_values:
     tf_coils = [Coil(curve, ScaledCurrent(current, scale_factor)) for curve, current in zip(tf_curves_cylindrical, tf_currents)]
     mf_tf = BiotSavart(tf_coils)
     
-    # Fixing the tf coils geometry and current in the first num_fixed coils
-    for i in range(num_fixed):
-        base_tf_coils[i].current.fix_all()
+    # Fix usually 1 TF coil current to prevent optimizer just sending B fields to 0
+    # Trying something new - fix all three TF currents during shift/tilt optimization, then only fix 1 during combined optimization
+    #for i in range(num_fixed):
+    #    base_tf_coils[i].current.fix_all()
     for c in base_tf_coils:
         c.curve.fix_all()
-        c.curve.unfix('R0')
-        c.curve.unfix('r_rotation')
+        c.current.fix_all()
+        if not fixed_geo:
+            c.curve.unfix('R0')
+            c.curve.unfix('r_rotation')
     
     Jccdist = CurveCurveDistance(tf_curves_cylindrical, CC_THRESHOLD, num_basecurves=n_tf)
     Jcsdist = CurveSurfaceDistance(base_tf_curves_cylindrical, surf_wf, CS_THRESHOLD)
@@ -315,12 +319,15 @@ tf_coils = [Coil(curve, ScaledCurrent(current, scale_factor)) for curve, current
 mf_tf = BiotSavart(tf_coils)
 
 # Fix usually 1 TF coil current to prevent optimizer just sending B fields to 0
-for i in range(num_fixed):
-    base_tf_coils[i].current.fix_all()
+# Trying something new - fix all three TF currents during shift/tilt optimization, then only fix 1 during combined optimization
+#for i in range(num_fixed):
+#    base_tf_coils[i].current.fix_all()
 for c in base_tf_coils:
     c.curve.fix_all()
-    c.curve.unfix('R0')
-    c.curve.unfix('r_rotation')
+    c.current.fix_all()
+    if not fixed_geo:
+        c.curve.unfix('R0')
+        c.curve.unfix('r_rotation')
 
 Jccdist = CurveCurveDistance(tf_curves_cylindrical, CC_THRESHOLD, num_basecurves=n_tf)
 Jcsdist = CurveSurfaceDistance(base_tf_curves_cylindrical, surf_wf, CS_THRESHOLD)
@@ -394,7 +401,7 @@ def update_Lambda(Lambda):
     # Increase lambda for currents above the threshold
     for i in range(len(wf.currents)):
         if wf_max > max_I:
-            Lambda[i] *= (np.abs(wf.currents[i]) / max_I)**2 + scale_fac 
+            Lambda[i] *= np.abs(wf.currents[i]) / max_I + scale_fac 
     # If all currents are below the tolerance (i.e. too large a jump occurred), scale up entire array
     if wf_max < max_I * (1 - cur_tol):
         Lambda *= (wf_max / max_I)**2 - scale_fac
@@ -402,7 +409,7 @@ def update_Lambda(Lambda):
 
 # various tolerances used in optimization
 cur_tol = 0.01  # final max current will be +- cur_tol % from max allowed current, reduces iterations below
-JF_tol = 0.005 # minimum percentage decrease in TF/WF optimization in order to stop
+JF_tol = 0.01 # minimum percentage decrease in TF/WF optimization in order to stop
 
 # determine the approximate allowable max current in the dipoles, assuming a square dipole
 # B_0 = sqrt(2) / pi * mu0 * I / a
@@ -412,7 +419,7 @@ print('\n----- Beginning WF Optimization -----')
 start_time = time.time()
 
 # Optimize the wireframe with very low current restriction and scalar lambda to get the max current in the ideal configuration
-lambda_init = 10e-14 # prioritize low field error only
+lambda_init = 1e-14 # prioritize low field error only
 res = optimize_wireframe_wrapper(lambda_init)
 wf_max = np.abs(wf.currents[wf.unconstrained_segments()]).max().copy()
 print(f'Optimal current for minimum Bnormal: {wf_max:.2f} A')
@@ -429,7 +436,7 @@ if wf_max < max_I:
 else: # only need to do the loop if allowed current is less than optimal current
     print(f"Maximum current with no current limitation, {wf_max:.2f} A, is above the maximum allowed current, {max_I:.2f} A")
     print('Optimizing regularization matrix entries to bring maximum current below maximum allowed current')
-    lambda_init = 10e-12 # make everything prioritize Bnormal relatively well
+    lambda_init = 1e-10 # make everything prioritize Bnormal relatively well
     Lambda = np.ones(wf.nSegments) * lambda_init
     res = optimize_wireframe_wrapper(Lambda)
     wf_max = np.abs(wf.currents[wf.unconstrained_segments()]).max().copy()
@@ -446,6 +453,11 @@ print(f'Maximum WF Current = {wf_max:.2f} A, Maximum Allowed Current = {max_I:.2
 ########################################################################
 ######################## Combined Optimization #########################
 ########################################################################
+
+# Trying something new - fix all three TF currents during shift/tilt optimization, then only fix 1 during combined optimization
+for i in range(num_fixed, n_tf):
+    print(i)
+    base_tf_coils[i].current.fix_all()
 
 # Now iterate between TFs and dipoles to refine optimization
 # get initial squared flux difference btw TF only and TF and then WF only as starting point
@@ -474,6 +486,8 @@ total_time = end_time - start_time  # Calculate the total time
 JF_final = JF.J()
 print('----- Dipole Optimization Results ----- ')
 print(f'Total WF/TF Optimization Time: {total_time:.2f} seconds')
+print(f"DOF Names for TF Optimization: {JF.dof_names}")
+print(f"Final DOF Values for TF Optimization: {JF.x}")
 print(f'Squared Flux Percentage Between TF Only and Combined Optimization = {(JF_postTF - JF_final) / JF_postTF * 100:.2f}%')
 print(f'Squared Flux Percentage Between Initial State and Final Optimization = {(JF_preTF - JF_final) / JF_preTF * 100:.2f}%')
 print(f'Maximum WF Current = {wf_max:.1f}, Max/Min Allowed Current With {cur_tol * 100}% Tolerance = {max_I*(1+cur_tol):.1f}/{max_I*(1-cur_tol):.1f} \n')
@@ -612,7 +626,7 @@ lines = [f"Equilibrium file location: {eq_name_full} with s = {surf_s} and dof_s
          f"On axis magnetic field = {field_on_axis} T \n",
          f"Maximum allowed dipole field = {max_dipole_field} [T] \n", \
          f"TF parameters: ntf = {n_tf}, num_fixed = {num_fixed}, radius = {TF_R1:.3f} [m], opt params = {tf_opt_params} \n", 
-         f"Dipole parameters: nPhi = {win_nPhi}, nTheta = {win_nTheta}, min dimensions (phi, theta) = ({min_theta:.2f},{min_phi:.2f}) [in] \n",
+         f"Dipole parameters: nPhi = {win_nPhi}, nTheta = {win_nTheta}, min dimensions (phi, theta) = ({min_phi:.2f},{min_theta:.2f}) [in] \n",
          f"Vessel parameters: Axisymmetric? {axisymmetric}, major radius = {VV_R0}, minor radius = {VV_a} , average plasma-vessel distance = {wf_plas_offset:.4f} [m]\n",
          f"\n", 
          f"Optimization results \n",
@@ -623,7 +637,8 @@ lines = [f"Equilibrium file location: {eq_name_full} with s = {surf_s} and dof_s
          f'Squared Flux Percentage Between TF Only and Combined Optimization = {(JF_postTF - JF_final) / JF_postTF * 100:.2f}% \n',
          f'Squared Flux Percentage Between Initial State and Final Optimization = {(JF_preTF - JF_final) / JF_preTF * 100:.2f}% \n',
          f"Final Surface-averaged |B| = {mean_abs_modBfinal:.3f} \n",
-         f"Maximum WF Current = {np.abs(wf.currents[wf.unconstrained_segments()]).max():.3e}, Maximum Allowed Current With {cur_tol * 100}% Tolerance = {max_I*(1+cur_tol):.3e} \n"]
+         f"Maximum WF Current = {np.abs(wf.currents[wf.unconstrained_segments()]).max():.3e}, Maximum Allowed Current With {cur_tol * 100}% Tolerance = {max_I*(1+cur_tol):.3e} \n", 
+         f"Maximum Dipole Field = {np.sqrt(2) * mu0 * np.abs(wf.currents.max()) / np.pi / min_dim} [T]\n"]
  
 with open("parameters.txt", "w") as file1:
     file1.writelines(lines)
