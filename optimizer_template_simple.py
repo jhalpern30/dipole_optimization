@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # coding: utf-8
 
 import numpy as np
@@ -150,12 +149,12 @@ wf_nPhi = win_nPhi * segs_per_win_plus_gap
 if uneven_grid:
     # Generate uneven spacing for the inboard side (smaller spacing)
     total_inboard_points = nInboard * segs_per_win_plus_gap
-    inboard_grid = np.linspace(theta_inboard_start, theta_inboard_end, total_inboard_points)
+    inboard_grid = np.linspace(theta_inboard_start, theta_inboard_end, total_inboard_points, endpoint=False)
     # Generate uneven spacing for the outboard side (larger spacing)
     total_outboard_points = nOutboard * segs_per_win_plus_gap
     # Outboard region split into two parts (0 to theta_inboard_start and theta_inboard_end to 2pi)
     outboard_grid_left = np.linspace(0, theta_inboard_start, total_outboard_points // 2, endpoint=False)
-    outboard_grid_right = np.flip(np.linspace(1, theta_inboard_end, total_outboard_points // 2, endpoint=False))
+    outboard_grid_right = np.linspace(theta_inboard_end, 1, total_outboard_points // 2, endpoint=False)
     # Combine the inboard and outboard regions
     quad_theta = np.concatenate([outboard_grid_left, inboard_grid, outboard_grid_right])
     print(quad_theta)
