@@ -1,0 +1,94 @@
+ THIS IS PARVMEC (PARALLEL VMEC), VERSION 9.0
+ Lambda: Full Radial Mesh. L-Force: hybrid full/half.
+
+ COMPUTER: arm64-apple-darwin20.0.0   OS:    RELEASE:   DATE = Oct 29,2024  TIME = 12:24:28
+ SHOT ID.: hbt_AR_3_finite_beta  SEQ. NO.:   0
+ TIME SLICE =    0. ms
+
+ COMPUTATION PARAMETERS: (u = theta, v = zeta)
+ ---------------------------------------------
+     ns     nu     nv     mu     mv
+    100     16      6      5      1
+
+ CONFIGURATION PARAMETERS:
+ ---------------------------------------
+    nfp      gamma      spres_ped    phiedge(wb)     curtor(A)        lRFP
+      1  0.000E+00      1.000E+00      1.982E-02    -1.159E+04           F
+
+ RUN CONTROL PARAMETERS:
+ -----------------------
+  ncurr  niter   nsin  nstep  nvacskip      ftol     tcon0    lasym  lforbal lmove_axis lconm1
+      1   4000      5    200         1  1.00E-12  2.00E+00        F        F        T        T
+  mfilter_fbdy nfilter_fbdy lfull3d1out max_main_iterations lgiveup fgiveup
+           -1           -1           F                   1       F  3.0E+01
+
+ PRECONDITIONER CONTROL PARAMETERS:
+ ----------------------------------
+  precon_type   prec2d_threshold
+  NONE                  1.00E-30
+
+ MASS PROFILE COEFFICIENTS - newton/m**2 (EXPANSION IN NORMALIZED RADIUS):
+ PMASS parameterization type is 'CUBIC_SPLINE'
+ -----------------------------------
+
+
+ TOROIDAL CURRENT DENSITY (*V') COEFFICIENTS ac (EXPANSION IN NORMALIZED RADIUS):
+ PCURR parameterization type is 'cubic_spline_I'
+ --------------------------------------
+   0.000E+00   0.000E+00   0.000E+00   0.000E+00   0.000E+00   0.000E+00
+   0.000E+00   0.000E+00   0.000E+00   0.000E+00   0.000E+00   0.000E+00
+   0.000E+00   0.000E+00   0.000E+00   0.000E+00   0.000E+00   0.000E+00
+   0.000E+00   0.000E+00   0.000E+00
+ ac_aux_s is
+   0.000E+00   1.010E-02   2.020E-02   3.030E-02   4.040E-02   5.051E-02
+   6.061E-02   7.071E-02   8.081E-02   9.091E-02   1.010E-01   1.111E-01
+   1.212E-01   1.313E-01   1.414E-01   1.515E-01   1.616E-01   1.717E-01
+   1.818E-01   1.919E-01   2.020E-01   2.121E-01   2.222E-01   2.323E-01
+   2.424E-01   2.525E-01   2.626E-01   2.727E-01   2.828E-01   2.929E-01
+   3.030E-01   3.131E-01   3.232E-01   3.333E-01   3.434E-01   3.535E-01
+   3.636E-01   3.737E-01   3.838E-01   3.939E-01   4.040E-01   4.141E-01
+   4.242E-01   4.343E-01   4.444E-01   5.556E-01   5.657E-01   5.758E-01
+   5.859E-01   5.960E-01   6.061E-01   6.162E-01   6.263E-01   6.364E-01
+   6.465E-01   6.566E-01   6.667E-01   6.768E-01   6.869E-01   6.970E-01
+   7.071E-01   7.172E-01   7.273E-01   7.374E-01   7.475E-01   7.576E-01
+   7.677E-01   7.778E-01   7.879E-01   7.980E-01   8.081E-01   8.182E-01
+   8.283E-01   8.384E-01   8.485E-01   8.586E-01   8.687E-01   8.788E-01
+   8.889E-01   8.990E-01   9.091E-01   9.192E-01   9.293E-01   9.394E-01
+   9.495E-01   9.596E-01   9.697E-01   9.798E-01   9.899E-01   1.000E+00
+  -1.000E+00  -1.000E+00  -1.000E+00  -1.000E+00  -1.000E+00  -1.000E+00
+  -1.000E+00  -1.000E+00  -1.000E+00  -1.000E+00  -1.000E+00
+ ac_aux_f is
+  -1.596E+02  -3.065E+02  -5.897E+02  -8.544E+02  -1.105E+03  -1.345E+03
+  -1.575E+03  -1.795E+03  -2.009E+03  -2.214E+03  -2.413E+03  -2.606E+03
+  -2.794E+03  -2.976E+03  -3.152E+03  -3.324E+03  -3.492E+03  -3.656E+03
+  -3.815E+03  -3.971E+03  -4.122E+03  -4.269E+03  -4.406E+03  -4.537E+03
+  -4.673E+03  -4.818E+03  -4.971E+03  -5.123E+03  -5.266E+03  -5.401E+03
+  -5.532E+03  -5.661E+03  -5.790E+03  -5.916E+03  -6.039E+03  -6.159E+03
+  -6.277E+03  -6.393E+03  -6.508E+03  -6.621E+03  -6.732E+03  -6.843E+03
+  -6.951E+03  -7.059E+03  -7.164E+03  -7.269E+03  -7.372E+03  -7.474E+03
+  -7.575E+03  -7.675E+03  -7.773E+03  -7.871E+03  -7.968E+03  -8.063E+03
+  -8.157E+03  -8.251E+03  -8.343E+03  -8.434E+03  -8.525E+03  -8.614E+03
+  -8.703E+03  -8.791E+03  -8.878E+03  -8.964E+03  -9.049E+03  -9.134E+03
+  -9.217E+03  -9.301E+03  -9.383E+03  -9.464E+03  -9.545E+03  -9.625E+03
+  -9.705E+03  -9.783E+03  -9.861E+03  -9.938E+03  -1.001E+04  -1.009E+04
+  -1.017E+04  -1.024E+04  -1.032E+04  -1.039E+04  -1.046E+04  -1.053E+04
+  -1.061E+04  -1.068E+04  -1.075E+04  -1.082E+04  -1.089E+04  -1.096E+04
+  -1.103E+04  -1.109E+04  -1.116E+04  -1.123E+04  -1.130E+04  -1.136E+04
+  -1.143E+04  -1.149E+04  -1.156E+04  -1.159E+04
+
+ NORMALIZED TOROIDAL FLUX COEFFICIENTS aphi (EXPANSION IN S):
+ -----------------------------------
+   1.000E+00
+
+ R-Z FOURIER BOUNDARY COEFFICIENTS AND MAGNETIC AXIS INITIAL GUESS
+ R = RBC*COS(m*u - n*v) + RBS*SIN(m*u - n*v), Z = ZBC*COS(m*u - n*v) + ZBS*SIN(m*u-n*v)
+ --------------------------------------------------------------------------------------
+   nb  mb     rbc         rbs         zbc         zbs       raxis(c)    raxis(s)    zaxis(c)    zaxis(s)
+    0   0  1.0000E+00  0.0000E+00  0.0000E+00  0.0000E+00  9.3000E-01  0.0000E+00  0.0000E+00  0.0000E+00
+    0   1  3.3000E-01  0.0000E+00  0.0000E+00  3.3000E-01
+ FSQR, FSQZ = Normalized Physical Force Residuals
+ fsqr, fsqz = Preconditioned Force Residuals
+ -----------------------
+ BEGIN FORCE ITERATIONS
+ -----------------------
+

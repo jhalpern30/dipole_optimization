@@ -8,7 +8,7 @@ import numpy as np
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 ###### set this to wherever you'd like all the outputs from this script to go
-run_dir = os.path.join(script_dir, 'outputs')
+run_dir = os.path.join(script_dir, '../outputs/nInboard_scan_10_31_24')
 
 # this is the name of the script you're going to replace the parameters for and run
 script_template_name = 'optimizer_template_simple.py' ### use this for HBT calcs (no TF dofs)
@@ -17,35 +17,35 @@ script_name = 'optimizer.py' ### what you want the script saved as in outputs fo
 
 ### Simulation parameters ###
 # TF coils parameters
-n_tf = 5                       # number of TF coils per half field period
+n_tf = 4                       # number of TF coils per half field period
 num_fixed = 1                  # number of TF coil currents to fix during combined optimization
 vc_flag = False                # Use finite beta when running HBT_optimizer_template
 field_on_axis = 1.0            # B field at magnetic axis in Tesla
 fixed_geo = False               # fix the TF geometry
-TF_radius = 0.5         # range of TF coil radii to optimize over, put in increasing order
+TF_radius = 0.6         # range of TF coil radii to optimize over, put in increasing order
     
 # Windowpane parameters
 axisymmetric = True            # use axisymmetric vessel for dipoles
 max_dipole_field = False         # [T], set by engineering constraints. If false, no current limit
-win_nPhi = 7                    # Number of windows per half period, toroidal dimension
-win_nTheta = 10              # Number of windows, poloidal dimension
+win_nPhi = 11                    # Number of windows per half period, toroidal dimension
+win_nTheta = 16              # Number of windows, poloidal dimension
 win_size = 8                   # Number of grid cells/window, both dimensions
 win_gap = 2                    # Number of grid cells between adjacent windows
-uneven_grid = True
-nInboard = 8              # number of smaller dipoles on inboard side
-nOutboard = 2            # number of large dipoles on outboard side
-theta_inboard_start = 0.25 # starting point for smaller dipoles, normalized such that 0 -> 1 = 0 -> 2pi
-theta_inboard_end = 0.75     # ending point for smaller dipoles
+uneven_grid = False
+nInboard = win_nTheta - 2   # number of smaller dipoles on inboard side
+nOutboard = 2               # number of large dipoles on outboard side
+theta_inboard_start = 0.2   # starting point for smaller dipoles, normalized such that 0 -> 1 = 0 -> 2pi
+theta_inboard_end = 0.8     # ending point for smaller dipoles
 
 # Vacuum Vessel
-VV_a = 0.3                   # minor radius of vacuum vessel
-VV_R0 = 1.0                   # major radius of vacuum vessel
+VV_a = 0.24                   # minor radius of vacuum vessel
+VV_R0 = 1.0                  # major radius of vacuum vessel
 
 # Plasma Surface
 plas_nPhi = 64                 # toroidal points on plasma surface
 plas_nTheta = 64               # poloidal points on plasma surface
 surf_s = 1.0                   # value of s to cut the surface at (if already HBT sized, these will both be 1)
-surf_dof_scale = 0.16          # used to scale the dofs of the surface
+surf_dof_scale = 0.165      # used to scale the dofs of the surface
 eq_name = 'wout_NAS_n2n4_AR6.2.03'  # name of the wout file from vmec
 #eq_name = 'wout_hbt_finite_beta_000_000000'   # use this for HBT calcs
 eq_dir = os.path.join(script_dir, 'equilibria') # equilibria should be in this folder
@@ -58,7 +58,7 @@ extra = ""
 if VV_a != 0.25:
     extra = extra + f"_VVa_{VV_a}"
 if VV_R0 != 1.0:
-    extra = extra + f"VV_R0_{VV_R0}"
+    extra = extra + f"_VV_R0_{VV_R0}"
 if fixed_geo != False:
     extra = extra + f"_fixedTFs"
 if axisymmetric != True:

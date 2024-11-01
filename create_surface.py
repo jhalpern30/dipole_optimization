@@ -9,7 +9,7 @@ def create_surface(eq_name_full, surf_range, plas_nPhi, plas_nTheta, surf_s, dof
     surf_plas.least_squares_fit(surf_nfp1.gamma())
     
     surf_plas.set_dofs(dof_scale*surf_plas.get_dofs())
-    surf_plas.set_rc(0,0,R0)
+    #surf_plas.set_rc(0,0,R0)
     return surf_plas
 
 # shouldn't need to change this

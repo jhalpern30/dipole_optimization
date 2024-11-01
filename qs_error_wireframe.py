@@ -56,7 +56,7 @@ b.read_wout(eq_name_full)
 b.mboz = mboz
 b.nboz = nboz
 b.run()
-b.write_boozmn('boozmn_'+eq_name+'.nc')
+b.write_boozmn(os.path.join(full_dir,'boozmn_'+eq_name+'.nc'))
 
 bmnc = b.bmnc_b
 xm = b.xm_b
