@@ -139,8 +139,10 @@ print(f"Circumferences in poloidal/toroidal direction: ({theta_circum:.2f}, {phi
 print(f"Minimum dipole dimensions (theta, phi): ({min_theta:.2f}, {min_phi:2f}) [in]")
 print(f"Minimum dipole dimensions (theta, phi): ({2.54*min_theta:.2f}, {2.54*min_phi:2f}) [cm]")
 print(f"Minimum dipole dimension (either direction): {min_dim:.2f} [m]")
-print(f"Optimum nPhi to nTheta ratio to have ~ square dipoles on inboard side = {opt_nPhi_nTheta_ratio}")
+print(f"Optimum nPhi to nTheta ratio to have ~ square dipoles on inboard side = {opt_nPhi_nTheta_ratio} \n")
 print('\n')
+min_theta = 0.0254 * min_theta # convert these back to m for later use
+min_phi = 0.0254 * min_phi
 
 segs_per_win_plus_gap = win_size + win_gap
 wf_nTheta = win_nTheta * segs_per_win_plus_gap
@@ -157,7 +159,8 @@ if uneven_grid:
     outboard_grid_right = np.linspace(theta_inboard_end, 1, total_outboard_points // 2, endpoint=False)
     # Combine the inboard and outboard regions
     quad_theta = np.concatenate([outboard_grid_left, inboard_grid, outboard_grid_right])
-    print(quad_theta)
+    quad_theta[1] = 0.005; quad_theta[-1] = 0.995 # bring outboard dipoles closer together artificially
+    print('Manually adjusting dipole grid to bring outboard dipoles closer together')
 else:
     quad_theta = np.linspace(0, 1, wf_nTheta)
 
@@ -299,9 +302,9 @@ print('\n----- Beginning WF Optimization -----')
 start_time = time.time()
 
 if max_dipole_field: 
-    # determine the approximate allowable max current in the dipoles, assuming a square dipole
-    # B_0 = sqrt(2) / pi * mu0 * I / a
-    max_I = max_dipole_field * np.pi * min_dim / np.sqrt(2) / mu0
+    # determine the approximate allowable max current in the dipoles, assuming a rectangular dipole
+    # B_0 = 2 / pi * mu0 * I * sqrt(a^2 + b^2) / a / b
+    max_I = max_dipole_field * np.pi * min_theta * min_phi / np.sqrt(min_theta**2 + min_phi**2) / 2 / mu0
     # find the lambda that gives a max current closest to the max dipole field
     res = minimize_scalar(fun_wf, bounds=(-12, -6), method='bounded', tol=1e0)
     # rerun with the optimal lambda
@@ -313,7 +316,8 @@ else: # if not restricting dipole current, just optimize with low lambda
     res = optimize_wireframe(wf, 'rcls', params, surf_plas=surf_plas, ext_field=mf_tf, verbose=True)
 
 wf_max = np.abs(wf.currents[wf.unconstrained_segments()]).max()
-print(f'Maximum WF Current = {wf_max:.1f} [A], Maximum WF Field = {np.sqrt(2) * mu0 * wf_max / np.pi / min_dim:.3f} [T]\n')
+max_field = 2 * mu0 * wf_max / np.pi * np.sqrt(min_theta**2 + min_phi**2) / min_theta / min_phi 
+print(f'Maximum WF Current = {wf_max:.1f} [A], Maximum WF Field = {max_field:.3f} [T]\n')
 
 ########################################################################
 ######################## Combined Optimization #########################
@@ -324,7 +328,7 @@ for i in range(num_fixed, n_tf):
     base_tf_coils[i].current.unfix_all()
 
 # Now iterate between TFs and dipoles to refine optimization
-JF_tol = 0.03 # minimum percentage decrease in TF/WF optimization in order to stop
+JF_tol = 0.05 # minimum percentage decrease in TF/WF optimization in order to stop
 # get initial squared flux difference btw TF only and TF and then WF only as starting point
 JF_i = JF_postTF
 # now add in dipole contribution to B field
@@ -341,6 +345,7 @@ while (JF_i - JF.J()) / JF_i > JF_tol: # keep looping through TF/WF optimization
     JF = Jf + CC_WEIGHT * Jccdist + CS_WEIGHT* Jcsdist
     print(f'\n Post Iteration Squared Flux = {JF.J():.4e}, % Difference = {(JF_i - JF.J()) / JF_i * 100:.3f}%, Target % Difference = {JF_tol * 100}% \n')
 
+max_field = 2 * mu0 * wf_max / np.pi * np.sqrt(min_theta**2 + min_phi**2) / min_theta / min_phi 
 end_time = time.time()  # End the timer
 total_time = end_time - start_time  # Calculate the total time
 JF_final = JF.J()
@@ -350,7 +355,7 @@ print(f"DOF Names for TF Optimization: {JF.dof_names}")
 print(f"Final DOF Values for TF Optimization: {JF.x}")
 print(f'Squared Flux Percentage Between TF Only and Combined Optimization = {(JF_postTF - JF_final) / JF_postTF * 100:.2f}%')
 print(f'Squared Flux Percentage Between Initial State and Final Optimization = {(JF_preTF - JF_final) / JF_preTF * 100:.2f}%')
-print(f'Maximum WF Current = {wf_max:.1f} [A], Maximum WF Field = {np.sqrt(2) * mu0 * wf_max / np.pi / min_dim:.3f} [T]\n')
+print(f'Maximum WF Current = {wf_max:.1f} [A], Maximum WF Field = {max_field:.3f} [T]\n')
 
 ########################################################################
 ########################### Post-Processing ############################
@@ -382,6 +387,24 @@ print('    Enclosed toroidal current: %.3e' % (amploop_tor_curr))
 relBfinal_norm, final_mean_abs_relBfinal_norm, final_relBfinal_norm_max = plot_relBfinal_norm(
     mf_tot, surf_plas, unitn, surf_area, n, phi, theta, axisfontsize, titlefontsize, cbarfontsize, ticklabelfontsize, dpi, 'Final'
 )
+
+# do a 2D fft of the final Bnormal to analyze dominant modes
+fft_result = np.fft.fft2(relBfinal_norm)
+fft_magnitudes = np.abs(fft_result)
+m_modes = np.fft.fftfreq(relBfinal_norm.shape[1], d=(theta[1] - theta[0])*2*np.pi) 
+n_modes = np.fft.fftfreq(relBfinal_norm.shape[0], d=(phi[1] - phi[0])*2*np.pi) 
+# Shift the zero frequency component to the center
+fft_magnitudes = np.fft.fftshift(fft_magnitudes)
+m_modes = np.fft.fftshift(m_modes)
+n_modes = np.fft.fftshift(n_modes)
+plt.figure(figsize=(8, 6))
+plt.pcolormesh(m_modes, n_modes, np.squeeze(fft_magnitudes), shading='auto', cmap='viridis')
+plt.colorbar(label='Magnitude')
+plt.xlabel('Toroidal Mode Number (n)')
+plt.ylabel('Poloidal Mode Number (m)')
+plt.title('2D FFT of Bn/B Final')
+plt.savefig('2DFFT_Bn.png', dpi=dpi)
+plt.clf()
 
 # plot final mod B
 mf_tf.set_points(surf_plas.gamma().reshape((-1, 3)))
@@ -441,7 +464,7 @@ for i in range(2*surf_wf.nfp):
     currents_full[ind0:ind1] = wf.currents[:]
 
 # see sample post-processing script (Poincare plots) for how to regenerate wireframe
-curves = [c.curve for c in base_tf_coils]
+curves = [c.curve for c in tf_coils]
 surf_plas.to_vtk('surf_plas', extra_data={"B_N/B": relBfinal_norm})
 surf_wf.to_vtk('vacuumvessel')
 mf_tf.save('TF_biot_savart_opt.json');
@@ -451,8 +474,17 @@ surf_wf_full.save('surf_wf.json')
 np.savez('WF_data', **wf_dict)
 curves_to_vtk(curves, 'TF_coils', close=True)
 
-for c in base_tf_coils:
-    c.current.fix_all()
+# save the entire surface with Bnormal to plot
+n = surf_plas_full.normal()
+absn = np.linalg.norm(n, axis=2)
+unitn = n * (1./absn)[:,:,None]
+mf_tot.set_points(surf_plas_full.gamma().reshape((-1, 3)))
+Bfinal = mf_tot.B().reshape(n.shape)
+Bfinal_norm = np.sum(Bfinal * unitn, axis=2)[:, :, None]
+modBfinal = np.sqrt(np.sum(Bfinal**2, axis=2))[:, :, None]
+relBfinal_norm = Bfinal_norm / modBfinal
+surf_plas_full.to_vtk('surf_plas_full', extra_data={"B_N/B": relBfinal_norm})
+
 
 with open("TF_shifts_tilts.txt", "w") as file:
     file.write("R0 in meters, rotations in radians \n")
@@ -467,7 +499,6 @@ lines = [f"Equilibrium file location: {eq_name_full} with s = {surf_s} and dof_s
          f"Maximum allowed dipole field = {max_dipole_field} [T] \n", \
          f"TF parameters: ntf = {n_tf}, num_fixed = {num_fixed}, radius = {TF_radius:.3f} [m], opt params = {tf_opt_params} \n", 
          f"Dipole parameters: nPhi = {win_nPhi}, nTheta = {win_nTheta}, min dimensions (phi, theta) = ({min_phi:.2f},{min_theta:.2f}) [in] \n",
-         f"Uneven grid? {uneven_grid}. If True, uneven grid params: {uneven_params} \n"
          f"Vessel parameters: Axisymmetric? {axisymmetric}, major radius = {VV_R0}, minor radius = {VV_a} , average plasma-vessel distance = {wf_plas_offset:.4f} [m]\n",
          f"\n", 
          f"Optimization results \n",
@@ -478,7 +509,9 @@ lines = [f"Equilibrium file location: {eq_name_full} with s = {surf_s} and dof_s
          f'Squared Flux Percentage Between TF Only and Combined Optimization = {(JF_postTF - JF_final) / JF_postTF * 100:.2f}% \n',
          f'Squared Flux Percentage Between Initial State and Final Optimization = {(JF_preTF - JF_final) / JF_preTF * 100:.2f}% \n',
          f"Final Surface-averaged |B| = {mean_abs_modBfinal:.3f} \n",
-         f"Maximum WF Current = {wf_max:.3e}, Maximum Dipole Field = {np.sqrt(2) * mu0 * wf_max / np.pi / min_dim} [T]\n"]
+         f"Maximum WF Current = {wf_max:.3e}, Maximum Dipole Field = {max_field:.3f} [T]\n"]
  
 with open("parameters.txt", "w") as file1:
     file1.writelines(lines)
+    if uneven_grid:
+        file1.write(f"Uneven grid? {uneven_grid}. If True, uneven grid params: {uneven_params} \n")
