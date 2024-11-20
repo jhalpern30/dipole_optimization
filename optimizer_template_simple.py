@@ -138,9 +138,6 @@ print('------ Dipole Sizes ------')
 print(f"Circumferences in poloidal/toroidal direction: ({theta_circum:.2f}, {phi_circum:.2f}) [in]")
 print(f"Minimum dipole dimensions (theta, phi): ({min_theta:.2f}, {min_phi:2f}) [in]")
 print(f"Minimum dipole dimensions (theta, phi): ({2.54*min_theta:.2f}, {2.54*min_phi:2f}) [cm]")
-print(f"Minimum dipole dimension (either direction): {min_dim:.2f} [m]")
-print(f"Optimum nPhi to nTheta ratio to have ~ square dipoles on inboard side = {opt_nPhi_nTheta_ratio} \n")
-print('\n')
 min_theta = 0.0254 * min_theta # convert these back to m for later use
 min_phi = 0.0254 * min_phi
 
@@ -160,7 +157,7 @@ if uneven_grid:
     # Combine the inboard and outboard regions
     quad_theta = np.concatenate([outboard_grid_left, inboard_grid, outboard_grid_right])
     quad_theta[1] = 0.005; quad_theta[-1] = 0.995 # bring outboard dipoles closer together artificially
-    print('Manually adjusting dipole grid to bring outboard dipoles closer together')
+    print('\nManually adjusting dipole grid to bring outboard dipoles closer together\n')
 else:
     quad_theta = np.linspace(0, 1, wf_nTheta)
 
@@ -271,7 +268,8 @@ relBfinal_norm, pre_TF_mean_abs_relBfinal_norm, pre_TF_relBfinal_norm_max = plot
 
 # optimize TF coils
 dofs = JF.x
-res = minimize(fun, dofs, jac=True, method='L-BFGS-B', options={'maxiter': 500, 'maxcor': 300}, tol=1e-15)
+if not fixed_geo:
+    res = minimize(fun, dofs, jac=True, method='L-BFGS-B', options={'maxiter': 500, 'maxcor': 300}, tol=1e-15)
 JF_postTF = JF.J()
 
 print('\n----- TF Optimization Results ----- ')
@@ -295,7 +293,7 @@ def fun_wf(regularization_lambda):
     res = optimize_wireframe(wf, 'rcls', params, surf_plas=surf_plas, \
                              ext_field=mf_tf, verbose=False)
     wf_max = np.abs(wf.currents[wf.unconstrained_segments()]).max()
-    print(f'     Maximum WF Current = {wf_max:.3f}, Maximum Allowed Current = {max_I:.3f},  Lambda  = {regularization_lambda:.3e}')
+    print(f'     Maximum WF Current = {wf_max:.3f}, Maximum Allowed Current = {max_I:.3f},  Lambda  = 10**{regularization_lambda:.3f}')
     return np.abs(wf_max - max_I)
 
 print('\n----- Beginning WF Optimization -----')
@@ -306,13 +304,13 @@ if max_dipole_field:
     # B_0 = 2 / pi * mu0 * I * sqrt(a^2 + b^2) / a / b
     max_I = max_dipole_field * np.pi * min_theta * min_phi / np.sqrt(min_theta**2 + min_phi**2) / 2 / mu0
     # find the lambda that gives a max current closest to the max dipole field
-    res = minimize_scalar(fun_wf, bounds=(-12, -6), method='bounded', tol=1e0)
+    res = minimize_scalar(fun_wf, bounds=(-12, -6), method='bounded', tol=1e-1)
     # rerun with the optimal lambda
     regularization_lambda = res.x
     params = {'reg_lambda': 10**regularization_lambda, 'assume_no_crossings': True}  # MUST be true for a windowpane solution
     res = optimize_wireframe(wf, 'rcls', params, surf_plas=surf_plas, ext_field=mf_tf)
 else: # if not restricting dipole current, just optimize with low lambda
-    params = {'reg_lambda': 10**-14, 'assume_no_crossings': True}  # MUST be true for a windowpane solution
+    params = {'reg_lambda': 10**-14, 'assume_no_crossings': True} 
     res = optimize_wireframe(wf, 'rcls', params, surf_plas=surf_plas, ext_field=mf_tf, verbose=True)
 
 wf_max = np.abs(wf.currents[wf.unconstrained_segments()]).max()
@@ -328,13 +326,13 @@ for i in range(num_fixed, n_tf):
     base_tf_coils[i].current.unfix_all()
 
 # Now iterate between TFs and dipoles to refine optimization
-JF_tol = 0.05 # minimum percentage decrease in TF/WF optimization in order to stop
+JF_tol = 0.06 # minimum percentage decrease in TF/WF optimization in order to stop
 # get initial squared flux difference btw TF only and TF and then WF only as starting point
 JF_i = JF_postTF
 # now add in dipole contribution to B field
 Jf = SquaredFlux(surf_plas, mf_tf + res['wframe_field'], definition='local')
 JF = Jf + CC_WEIGHT * Jccdist + CS_WEIGHT* Jcsdist
-print('\nIterating Between TF and WF Optimization')
+print(f'\nIterating Between TF and WF Optimization. Targeting Squared Flux % Difference = {JF_tol * 100}% ')
 while (JF_i - JF.J()) / JF_i > JF_tol: # keep looping through TF/WF optimization, making sure currents are less than max_I as needed
     dofs = JF.x
     JF_i = JF.J()
@@ -343,7 +341,7 @@ while (JF_i - JF.J()) / JF_i > JF_tol: # keep looping through TF/WF optimization
     wf_max = np.abs(wf.currents[wf.unconstrained_segments()]).max()
     Jf = SquaredFlux(surf_plas, mf_tf + res['wframe_field'], definition='local')
     JF = Jf + CC_WEIGHT * Jccdist + CS_WEIGHT* Jcsdist
-    print(f'\n Post Iteration Squared Flux = {JF.J():.4e}, % Difference = {(JF_i - JF.J()) / JF_i * 100:.3f}%, Target % Difference = {JF_tol * 100}% \n')
+    print(f'\n  Squared Flux = {JF.J():.4e}, % Difference = {(JF_i - JF.J()) / JF_i * 100:.3f}%, Max Dipole Current = {wf_max:.1f} \n')
 
 max_field = 2 * mu0 * wf_max / np.pi * np.sqrt(min_theta**2 + min_phi**2) / min_theta / min_phi 
 end_time = time.time()  # End the timer
@@ -366,45 +364,11 @@ mf_tot = mf_tf + res['wframe_field']
 # Surface integral of the squared normal flux through the plasma boundary
 Bnormal_mf = SquaredFlux(surf_plas, mf_tot).J()
 print('    Squared flux integral from field calc = %.8e' % (Bnormal_mf))
-    
-# Consistency check: use an Amperian loop to verify the total poloidal current
-amploop = CurveXYZFourier(100, 1)
-amploop.set('xc(1)', surf_plas.get_rc(0,0) + surf_plas.get_rc(0,1))
-amploop.set('ys(1)', surf_plas.get_rc(0,0) - surf_plas.get_rc(0,1))
-amploop_curr = enclosed_current(amploop, mf_tot, 1000)
-print('    Enclosed poloidal current: %.3e' % (amploop_curr))
-print('                    (expected: %.3e)' % (-2*surf_plas.nfp*np.sum([c.current.get_value() for c in base_tf_coils])))
-    
-# Consistency check: use an Amperian loop to check the total toroidal current
-amploop_tor = CurveXYZFourier(100, 1)
-amploop_tor.set('xc(0)', wf.surface.get_rc(0,0))
-amploop_tor.set('xc(1)', 2*wf.surface.get_rc(1,0))
-amploop_tor.set('zs(1)', 2*wf.surface.get_zs(1,0))
-amploop_tor_curr = enclosed_current(amploop_tor, mf_tot, 1000)
-print('    Enclosed toroidal current: %.3e' % (amploop_tor_curr))
 
 # get final Bnormal
 relBfinal_norm, final_mean_abs_relBfinal_norm, final_relBfinal_norm_max = plot_relBfinal_norm(
     mf_tot, surf_plas, unitn, surf_area, n, phi, theta, axisfontsize, titlefontsize, cbarfontsize, ticklabelfontsize, dpi, 'Final'
 )
-
-# do a 2D fft of the final Bnormal to analyze dominant modes
-fft_result = np.fft.fft2(relBfinal_norm)
-fft_magnitudes = np.abs(fft_result)
-m_modes = np.fft.fftfreq(relBfinal_norm.shape[1], d=(theta[1] - theta[0])*2*np.pi) 
-n_modes = np.fft.fftfreq(relBfinal_norm.shape[0], d=(phi[1] - phi[0])*2*np.pi) 
-# Shift the zero frequency component to the center
-fft_magnitudes = np.fft.fftshift(fft_magnitudes)
-m_modes = np.fft.fftshift(m_modes)
-n_modes = np.fft.fftshift(n_modes)
-plt.figure(figsize=(8, 6))
-plt.pcolormesh(m_modes, n_modes, np.squeeze(fft_magnitudes), shading='auto', cmap='viridis')
-plt.colorbar(label='Magnitude')
-plt.xlabel('Toroidal Mode Number (n)')
-plt.ylabel('Poloidal Mode Number (m)')
-plt.title('2D FFT of Bn/B Final')
-plt.savefig('2DFFT_Bn.png', dpi=dpi)
-plt.clf()
 
 # plot final mod B
 mf_tf.set_points(surf_plas.gamma().reshape((-1, 3)))
@@ -414,7 +378,6 @@ modBfinal = np.sqrt(np.sum(Bfinal**2, axis=2))[:, :, None]
 abs_modBfinal_dA = np.abs(modBfinal.reshape((-1, 1))) * surf_area
 mean_abs_modBfinal = np.sum(abs_modBfinal_dA) / np.sum(surf_area)
 print(f'    Surface-averaged |B| = {mean_abs_modBfinal:.3f}')
-
 fig, ax = plt.subplots()
 contour = ax.contourf(phi, theta, np.squeeze(modBfinal).T, levels=50, cmap='viridis')
 ax.set_xlabel(r'$\phi/2\pi$', fontsize=axisfontsize, fontweight='bold')
@@ -450,6 +413,7 @@ if n_tf > 0:
         coil.curve.plot(close=True, show=False, engine='mayavi')
 mlab.view(distance=surf_plas.get_rc(0,0)*6)
 mlab.savefig('plot3d.png', size=(1400, 1000))
+mlab.clf()
 
 ########################################################################
 ############################## Save Data ###############################
@@ -465,14 +429,15 @@ for i in range(2*surf_wf.nfp):
 
 # see sample post-processing script (Poincare plots) for how to regenerate wireframe
 curves = [c.curve for c in tf_coils]
+curves_to_vtk(curves, 'TF_coils', close=True)
 surf_plas.to_vtk('surf_plas', extra_data={"B_N/B": relBfinal_norm})
 surf_wf.to_vtk('vacuumvessel')
 mf_tf.save('TF_biot_savart_opt.json');
 wf.to_vtk('wf_grid')
 np.save('WF_currents', currents_full)
+surf_plas.save('surf_plas.json')
 surf_wf_full.save('surf_wf.json')
 np.savez('WF_data', **wf_dict)
-curves_to_vtk(curves, 'TF_coils', close=True)
 
 # save the entire surface with Bnormal to plot
 n = surf_plas_full.normal()
@@ -497,7 +462,7 @@ lines = [f"Equilibrium file location: {eq_name_full} with s = {surf_s} and dof_s
          f"Equilibrium parameters: major radius = {major_radius:.3f}, minor radius = {minor_radius:.3f}, volume = {volume:.3f}, aspect ratio = {aspect_ratio:.3f} \n",
          f"On axis magnetic field = {field_on_axis} T \n",
          f"Maximum allowed dipole field = {max_dipole_field} [T] \n", \
-         f"TF parameters: ntf = {n_tf}, num_fixed = {num_fixed}, radius = {TF_radius:.3f} [m], opt params = {tf_opt_params} \n", 
+         f"TF parameters: ntf = {n_tf}, num_fixed = {num_fixed}, radius = {TF_radius:.3f} [m], current ~ {tf_coils[0].current.get_value()/1e3:3f} [kA], opt params = {tf_opt_params} \n", 
          f"Dipole parameters: nPhi = {win_nPhi}, nTheta = {win_nTheta}, min dimensions (phi, theta) = ({min_phi:.2f},{min_theta:.2f}) [in] \n",
          f"Vessel parameters: Axisymmetric? {axisymmetric}, major radius = {VV_R0}, minor radius = {VV_a} , average plasma-vessel distance = {wf_plas_offset:.4f} [m]\n",
          f"\n", 
