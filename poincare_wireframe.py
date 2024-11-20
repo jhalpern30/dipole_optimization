@@ -11,8 +11,8 @@ import os
 from create_surface import *
 
 # these need to be set based on the directory where the outputs you want to process are
-eq_name = 'wout_NAS_n2_AR4.03'  # this needs to be set based on the run
-out_dir = 'Bt0.5_Bd1.0_ntf5_np5_nt12_VVa_0.38VV_R0_0.96_fixedTFs'
+eq_name = 'wout_NAS_n2n4_AR6.2.03'  # this needs to be set based on the run
+out_dir = '10_Bt1.0_BdFalse_ntf5_np10_nt12_VVa_0.27_uneven_grid'
 
 # load the equilibrium surface
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -21,12 +21,12 @@ eq_name_full = os.path.join(eq_dir, eq_name + '.nc')
 print(f'\nGenerating Poincare Plot for Equilibrium {eq_name_full} with Outputs in {out_dir}')
 plas_nPhi = 128
 plas_nTheta = 64
-dof_scale = 0.15
+dof_scale = 0.165
 R0 = 1
 surf_s = 1
 # creating the plasma surface will be hardcoded for now
 surf_plas = create_surface(eq_name_full=eq_name_full, surf_range='full torus', plas_nPhi=plas_nPhi, plas_nTheta=plas_nTheta, surf_s=surf_s, dof_scale=dof_scale, R0=R0)
-full_dir = os.path.join(script_dir, 'outputs', eq_name, out_dir)
+full_dir = os.path.join(script_dir, '../outputs/2024_11_7_highAR_coilsetsearch', eq_name, out_dir)
 
 # load the saved data from the previous run
 surf_wf = load(os.path.join(full_dir, 'surf_wf.json'))
@@ -34,14 +34,15 @@ bs_tf = load(os.path.join(full_dir, 'TF_biot_savart_opt.json'))
 wf_currents = np.load(os.path.join(full_dir, 'WF_currents.npy'))
 loaded_dict = np.load(os.path.join(full_dir, 'WF_data.npz'))
 wf_dict = {key: loaded_dict[key].item() for key in loaded_dict}
-win_nPhi = wf_dict["win_nPhi"]
-win_nTheta = wf_dict["win_nTheta"]
-win_size = wf_dict["win_size"]
-win_gap = wf_dict["win_gap"]
+win_nPhi = wf_dict["win_nPhi"]; win_nTheta = wf_dict["win_nTheta"]; win_size = wf_dict["win_size"]; win_gap = wf_dict["win_gap"]
+if 'uneven_grid' in out_dir: # note: theta grid points are already saved in surf_wf, just need to pass in uneven_grid = True
+    uneven_grid = True
+else: 
+    uneven_grid = False
 
 # Initialize an idential wireframe as the run and set the currents equal to the final currents
 wf = windowpane_wireframe(surf_wf, win_nPhi, win_nTheta, win_size, win_size, \
-                          win_gap, win_gap)
+                          win_gap, win_gap, uneven_grid=uneven_grid)
 wf.currents = wf_currents
 # get the field from the wireframe
 bs_wf = WireframeField(wf)
@@ -59,9 +60,9 @@ tol = 1e-8 # Tolerance for field line integration
 interpolate = True # If True, then the BiotSavart magnetic field is interpolated 
                    # on a grid for the magnetic field evaluation
 nr = 20 # Number of radial points for interpolation
-nphi = 10 # Number of toroidal angle points for interpolation
-nz = 10 # Number of vertical points for interpolation
-degree = 3 # Degree for interpolation
+nphi = 12 # Number of toroidal angle points for interpolation
+nz = 12 # Number of vertical points for interpolation
+degree = 4 # Degree for interpolation
 
 # Extend surface, since we want to look at field lines beyond it
 surf_extended = create_surface(eq_name_full=eq_name_full, surf_range='full torus', plas_nPhi=plas_nPhi, plas_nTheta=plas_nTheta, surf_s=surf_s, dof_scale=dof_scale, R0=R0)
