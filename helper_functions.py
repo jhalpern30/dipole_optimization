@@ -251,17 +251,17 @@ def optimize_windowpane_currents(base_wp_coils, base_tf_coils, surf_plasma, defi
         for c in base_tf_coils:
             c.curve.fix_all()
         # I have to do this because the dofs are out of order and sorted like current18, current19, 2, 20... 29, 3, 30 etc., 
-        # and I want them like 1, 2, 3 etc., this should fix them
-        # This might get messed up if I start naming currents - don't do that
+        # and I want them like 1, 2, 3 etc., this should allow me to index them correctly (don't name dofs or else this will get messed up)
         # shoutout chatGPT for this section
+        # first, hacky way of obtaining starting dof number - this is needed when calling optimize in a scan since the 
+        # dof numbers will just keep increasing through each iteration. If only one run, this will be 1 + num_fixed
+        Jf_temp = SquaredFlux(surf_plasma, BiotSavart(base_wp_coils[0:1]), definition=definition)
+        dof_start_num = int(Jf_temp.dof_names[0].split(':')[0].replace('Current', ''))
+        # Now, create array of dof numbers and sort their strings lexicographically for later use
         ndofs = len(base_coils) - num_fixed
-        # Create the array of numbers in numerical order
-        numbers = list(range(1+num_fixed, ndofs + num_fixed + 1))
-        # Convert each number to a string
+        numbers = list(range(dof_start_num, ndofs + dof_start_num))
         string_numbers = [str(num) for num in numbers]
-        # Sort the list of strings lexicographically
         sorted_string_numbers = sorted(string_numbers)
-        # Convert back to integers
         sorted_indices = [int(num) for num in sorted_string_numbers]
 
         surf_plasma_nphi = len(surf_plasma.quadpoints_phi)
@@ -276,7 +276,7 @@ def optimize_windowpane_currents(base_wp_coils, base_tf_coils, surf_plasma, defi
         # now we will apply symmetries to the coils one at a time and calculate their respective BdotN contribution
         coils = []
         # need to add the fixed coils to the BdotN calc even though it isn't a dof
-        for ii, c  in enumerate(base_coils[0:num_fixed]):
+        for ii, c  in enumerate(base_tf_coils[0:num_fixed]):
             paired_curves_fixed = apply_symmetries_to_curves(base_curves=[c.curve], nfp=surf_plasma.nfp, stellsym=surf_plasma.stellsym)
             paired_currents_fixed = apply_symmetries_to_currents(base_currents=[c.current], nfp=surf_plasma.nfp, stellsym=surf_plasma.stellsym)
             paired_coils_fixed = [Coil(curve, current) for curve, current in zip(paired_curves_fixed, paired_currents_fixed)]
@@ -293,7 +293,7 @@ def optimize_windowpane_currents(base_wp_coils, base_tf_coils, surf_plasma, defi
             paired_coils = [Coil(curve, current) for curve, current in zip(paired_curves, paired_currents)]
             bs_coil = BiotSavart(paired_coils)
             bs_coil.set_points(surf_plasma.gamma().reshape((-1,3)))
-            i = sorted_indices.index(ii+1+num_fixed)
+            i = sorted_indices.index(ii+dof_start_num)
             BdotNcoil[i, :, :] = np.sum(bs_coil.B().reshape((surf_plasma_nphi, surf_plasma_ntheta, 3)) * surf_plasma.unitnormal(), axis = 2) # this is BdotN for each coil
             if (definition=='local' or definition=='normalized'):
                 Bcoil[i, :, :, :] = bs_coil.B().reshape((surf_plasma_nphi, surf_plasma_ntheta, 3))

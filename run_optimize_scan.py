@@ -9,14 +9,14 @@ import os
 import shutil
 import numpy as np
 from datetime import datetime
-from scripts.optimize import *
+from optimize import *
 from simsopt.geo import SurfaceRZFourier
 
 # Set script directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Define output parent folder
-output_subfolder = "20250210_geoscan_test_updated_Jcp_lower_init_current"  # Change this as needed
+output_subfolder = "20250211_geoscan_test_updated_Jcp_lower_init_current_fixed_indexing"  # Change this as needed
 parent_run_dir = os.path.join(script_dir, f'../outputs/{output_subfolder}')
 
 # Define ranges for dipole_radius and VV_a
@@ -60,7 +60,7 @@ Zmax = np.max(Z)
 VV_R0 = (Rmin + Rmax) / 2
 VV_a = (Rmax - Rmin) / 2
 VV_b = (Zmax - Zmin) / 2
-print(f'VV_R0 = {VV_R0:.2f}, VV_a = {VV_a:.2f}, VV_b = {VV_b:.2f}')
+print(f'VV_R0 = {VV_R0:.2f}, VV_a_min = {VV_a:.2f}, VV_b_min = {VV_b:.2f}')
 
 # TF coils parameters (radius current set as 1.6 * VV_b)
 n_tf = 10                       # number of TF coils per half field period

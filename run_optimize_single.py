@@ -8,7 +8,7 @@ Description: This script sends off a single optimization run of windowpane coil 
 import os
 import shutil
 import numpy as np
-from scripts.optimize import *
+from optimize import optimize
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 ###### set this to wherever you'd like all the outputs from this script to go
@@ -18,25 +18,24 @@ run_dir = os.path.join(script_dir, '../outputs/20250204_CurvePlanarFourier_test'
 # Dipole parameters
 fil_distance = 0.05 # distance between dipole filaments for finite coil winding pack [m]
 half_per_distance = 0.05 # distance between dipole panels between half field periods of the device [m]
-dipole_radius = 0.05 # radius of dipoles (poloidally constant, will vary toroidally so this is at inboard midplane) [m]
+dipole_radius = 0.035 # radius of dipoles (poloidally constant, will vary toroidally so this is at inboard midplane) [m]
 # Vacuum Vessel
-VV_a = 0.35                    # minor radius of vacuum vessel (horizontal)
-VV_b = 0.42                    # minor radius of vacuum vessel (vertical)
-VV_R0 = 0.92                    # major radius of vacuum vessel
+VV_a = 0.2500402157723215                    # minor radius of vacuum vessel (horizontal)
+VV_b = 0.3382203712428585                    # minor radius of vacuum vessel (vertical)
+VV_R0 = 0.9908912828999443                    # major radius of vacuum vessel
 # Plasma Surface
-plas_nPhi = 128                 # toroidal points on plasma surface
-plas_nTheta = 64               # poloidal points on plasma surface
-surf_s = 0.4                  # value of s to cut the surface at (if already HBT sized, these will both be 1)
-surf_dof_scale = 1.15      # used to scale the dofs of the surface
-eq_name = 'eq_opt_hybrid_4_11_14'  # name of the wout file from vmec
+plas_nPhi = 128; plas_nTheta=64    # plasma surface quad points
+surf_s = 1                  # value of s to cut the surface at (if already HBT sized, these will both be 1)
+surf_dof_scale = 1      # used to scale the dofs of the surface
+eq_name = 'eq_opt_circle_constraint_6_resolution_3_01_19'  # name of the wout file from vmec
 eq_dir = os.path.join(script_dir, 'equilibria') # equilibria should be in this folder
 # TF coils parameters (radius current set as 1.6 * VV_b)
 n_tf = 10                       # number of TF coils per half field period
-num_fixed = 10                  # number of TF coil currents to fix during combined optimization
+num_fixed = n_tf                  # number of TF coil currents to fix during combined optimization
 field_on_axis = 1.0            # on-axis magnetic field (Tesla)
 TF_R0 = VV_R0
-TF_a = 1.6*VV_a
-TF_b = 1.6*VV_b
+TF_a = 0.40006434523571444
+TF_b = 0.5411525939885736
 # Optimization parameters
 definition = "local"         # definition of squared flux, either local, normalized, or quadratic flux
 precomputed = True           # if true, will use precomputed Biot-Savart with scaled currents during optimization
