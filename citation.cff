@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+- family-names: "Halpern"
+  given-names: "Jacob"
+  orcid: "https://orcid.org/0000-0001-9370-8160"
+title: "Windowpane Coil Optimization"
+version: 1.0.0
+date-released: 2025-02-10
+url: "https://github.com/jhalpern30/dipole_optimization"
