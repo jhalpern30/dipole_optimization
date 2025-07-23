@@ -92,6 +92,25 @@ def optimize(
         Coil(curve, ScaledCurrent(current, scale_factor))
         for curve, current in zip(base_tf_curves, base_tf_currents)
     ]
+    tf_coils = coils_via_symmetries(
+    [c.curve for c in base_tf_coils], 
+    [c.current for c in base_tf_coils], 
+    surf.nfp, True
+    )
+    bs_tf = BiotSavart(tf_coils)
+    _, _, _ = (
+        plot_relBfinal_norm_modB(
+            bs_tf,
+            surf,
+            output_dir,
+            axisfontsize,
+            titlefontsize,
+            cbarfontsize,
+            ticklabelfontsize,
+            dpi,
+            "Pre TF Optimization",
+        )
+    )
     if not fixed_geo_TFs:
         optimize_tfs(
             base_tf_coils=base_tf_coils,
@@ -106,6 +125,21 @@ def optimize(
             maxiter=MAXITER,
             verbose=verbose,
         )
+
+    _, _, _ = (
+        plot_relBfinal_norm_modB(
+            bs_tf,
+            surf,
+            output_dir,
+            axisfontsize,
+            titlefontsize,
+            cbarfontsize,
+            ticklabelfontsize,
+            dpi,
+            "Post TF Optimization",
+        )
+    )
+        
     # Initialize dipoles
     base_wp_curves, base_wp_currents = generate_windowpane_array(
         winding_surface=VV,

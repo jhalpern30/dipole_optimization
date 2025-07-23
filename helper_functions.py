@@ -184,6 +184,7 @@ def generate_windowpane_array(winding_surface, inboard_radius, wp_fil_spacing, h
     # but this doesn't account for difference in arc length on either side of the center of the coil. Ideally, figure out how many
     # can fit, their radius, then figure out a way to find the theta location which keeps filament distance constant
     theta_locs = generate_even_arc_angles(VV_a, VV_b, nwps_poloidal)
+    #theta_locs += (theta_locs[1] - theta_locs[0]) / 2 # shift by half the angle spacing to open spacing at theta = 0
     # pi/nfp*(R0-a) = (ntor - 1)(2Rtor + fil_spacing) + 2Rtor + half_per_spacing
     nwps_toroidal = int((np.pi/winding_surface.nfp*(VV_R0 - VV_a) - half_per_spacing + wp_fil_spacing) / (2 * inboard_radius + wp_fil_spacing))
     if verbose:
@@ -195,7 +196,7 @@ def generate_windowpane_array(winding_surface, inboard_radius, wp_fil_spacing, h
     dgammadtheta_interpolators = [RegularGridInterpolator((winding_surface.quadpoints_phi, winding_surface.quadpoints_theta), winding_surface.dgammadtheta()[..., i], method='linear') for i in range(3)]
     # Initialize curves
     base_wp_curves = []
-    for ii in range(nwps_poloidal):
+    for ii in range(1, nwps_poloidal): # remove theta = 0 coil
         for jj in range(nwps_toroidal):
             theta_coil = theta_locs[ii]
             r = VV_a*VV_b / np.sqrt((VV_b*np.cos(theta_coil))**2 + (VV_a*np.sin(theta_coil))**2)
@@ -203,6 +204,9 @@ def generate_windowpane_array(winding_surface, inboard_radius, wp_fil_spacing, h
             # Calculate toroidal angle of center of coil
             dphi = (half_per_spacing/2 + Rtor) / (VV_R0 + r * np.cos(theta_coil)) # need to add buffer in phi for gaps in panels
             phi_coil = dphi + jj * (2 * Rtor + wp_fil_spacing) / (VV_R0 + r * np.cos(theta_coil))
+            # # After calculating equally spaced phi positions, try keeping width for outboard coils constant 
+            # if theta_coil < np.pi/2 or theta_coil > 3*np.pi/2:
+            #     Rtor = (np.pi/winding_surface.nfp*(VV_R0-VV_a) - half_per_spacing - (nwps_toroidal-1) * wp_fil_spacing) / (2 * nwps_toroidal)
             # Interpolate coil center and rotation vectors
             unitn_interp =        np.stack([interp((phi_coil/(2*np.pi), theta_coil/(2*np.pi))) for interp in unitn_interpolators], axis=-1)
             gamma_interp =        np.stack([interp((phi_coil/(2*np.pi), theta_coil/(2*np.pi))) for interp in gamma_interpolators], axis=-1)
@@ -488,7 +492,7 @@ def plot_coil_currents_on_theta_phi_grid(wp_currents_phis_thetas, output_dir, ax
     """
     currents = wp_currents_phis_thetas[:, 0] / 1000
     phis = wp_currents_phis_thetas[:, 1]
-    thetas = wp_currents_phis_thetas[:, 2]
+    thetas = np.mod(wp_currents_phis_thetas[:, 2], 2 * np.pi)
     vmax = np.max(np.abs(currents))  # Symmetric range
     norm = mcolors.Normalize(vmin=-vmax, vmax=vmax)
     cmap = plt.cm.seismic  # Diverging colormap (red-negative, blue-positive)
@@ -501,7 +505,7 @@ def plot_coil_currents_on_theta_phi_grid(wp_currents_phis_thetas, output_dir, ax
     cbar.ax.tick_params(axis='y', which='major', labelsize=ticklabelfontsize)
     ax.set_xlabel(r'$\phi/2\pi$', fontsize=axisfontsize, fontweight='bold')
     ax.set_ylabel(r'$\theta/2\pi$', fontsize=axisfontsize, fontweight='bold')
-    ax.set_ylim(-0.6, 0.6)
+    ax.set_ylim(-0.1, 1.1)
     ax.set_title("WP Coil Currents on Winding Surface", fontsize=titlefontsize, fontweight='bold')
     ax.grid(True, linestyle="--", alpha=0.6)
     plt.tight_layout()
@@ -523,6 +527,7 @@ def plot_relBfinal_norm_modB(bs, surf_plas, output_dir, axisfontsize, titlefonts
     Bfinal_norm = np.sum(Bfinal * unitn, axis=2)[:, :, None]
     modBfinal = np.sqrt(np.sum(Bfinal**2, axis=2))[:, :, None]
     relBfinal_norm = Bfinal_norm / modBfinal
+    #print(f"Maximum/Average |relBfinal_norm| for theta = 0: {np.max(np.abs(relBfinal_norm[:, 0])):.4e}/{np.mean(np.abs(relBfinal_norm[:, 0])):.4e}")
     abs_relBfinal_norm_dA = np.abs(relBfinal_norm.reshape((-1, 1))) * surf_area
     mean_abs_relBfinal_norm = np.sum(abs_relBfinal_norm_dA) / np.sum(surf_area)
     max_rBnorm = np.max(np.abs(relBfinal_norm))
